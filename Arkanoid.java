@@ -1,3 +1,5 @@
+package arkanoid2;
+
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -13,8 +15,8 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
     private int paddleX = (WIDTH - paddleBroad) / 2;
     private int ballX = (WIDTH - paddleBroad / 2) / 2;
     private int ballY = HEIGHT - 40;
-    private int ballSpeedX = 2;
-    private int ballSpeedY = -2;
+    private int ballSpeedX = 3;
+    private int ballSpeedY = -3;
     private int ballSize = 10;
     private boolean gameOver, pause;
     private int bricksX = 12;
@@ -23,6 +25,9 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
     public ArrayList<Block> blocks = new ArrayList<>();
     private boolean movingLeft = false;
     private boolean movingRight = false;
+    private int lives = 3;
+    private int score = 0;
+    private int level = 1;
 
     private Thread gameThread;
     private Thread paddleThread;
@@ -45,14 +50,19 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
 
     private void startPaddleThread() {
         paddleThread = new Thread(() -> {
-            while (true) {
-            	 if (pause || gameOver) {
+            while (gameOver == false) {
+            	 if (pause) {
                      try {
                          Thread.sleep(50);
+                        
                      } catch (InterruptedException ex) {
                          ex.printStackTrace();
                      }
                      continue;
+                 }
+                 if (gameOver) {
+                    GameOver();
+                    break;
                  }
                 if (movingLeft && paddleX > 0) {
                     paddleX --;
@@ -89,7 +99,7 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
         long lastTime = System.currentTimeMillis();
         long currentTime;
 
-        while (gameThread != null) {
+        while (gameThread != null && !gameOver) {
             currentTime = System.currentTimeMillis();
             delta += (double) (currentTime - lastTime) / drawInterval;
             lastTime = currentTime;
@@ -101,6 +111,7 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
                 delta--;
             }
         }
+        GameOver();
     }
 
     @Override
@@ -142,15 +153,30 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
 
         // Info panel
         g.drawRect(WIDTH, 0, 240, HEIGHT);
+        g.setColor(Color.WHITE);
+        g.drawString("Lives: " + lives, WIDTH + 20, 20);
+        g.drawString("Score: " + score, WIDTH + 20, 40);
+        g.drawString("Level: " + level, WIDTH + 20, 60);
 
         // Blocks
         for (Block block : blocks) {
             block.Draw((Graphics2D) g);
         }
+        if (pause) {
+            g.setColor(Color.YELLOW);
+            g.setFont((new Font("Arial", Font.BOLD, 50)));
+            g.drawString("PAUSE", WIDTH/2 - 100, HEIGHT/2);
+        }
+        if (gameOver) {
+            g.setColor(Color.RED);
+            g.setFont(new Font("Arial", Font.BOLD, 50));
+            g.drawString("GAME OVER", WIDTH/2 - 100, HEIGHT/2);
+        }
     }
 
     private void GameOver() {
-        pause = true;
+        // pause = true;
+        gameOver = true;
         System.out.println("GAME OVER");
     }
 
@@ -162,7 +188,16 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
             ballSpeedY = -ballSpeedY;
         }
         if (ballY >= HEIGHT) {
-            gameOver = true;
+        	lives -= 1;
+        	if (lives <= 0) {
+                lives = 0;
+        		gameOver = true;
+        	}
+        	else {
+        		gameOver = false;
+                pause = true;
+                launchBall();
+        	}
         }
 
         if (!pause && !gameOver) {
@@ -180,7 +215,15 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
                 if (ballRect.intersects(blockRect)) {
                     // Supprimer le bloc
                     blocks.remove(i);
+                    score ++;
                     i--;
+                    if (blocks.size() == 0) {
+                        level ++;
+                        populateBlocks();
+                        launchBall();
+                        pause = true;
+                        //i = blocks.size();
+                    }
 
                     // Détection précise du côté touché
                     boolean hitFromLeft = ballX + ballSize - ballSpeedX <= block.x;
@@ -203,14 +246,16 @@ public class Arkanoid extends JPanel implements KeyListener, Runnable {
             repaint();
             Toolkit.getDefaultToolkit().sync();
         }
-
-        if (gameOver) {
-            GameOver();
-        }
     }
 
     private void startGame() {
         populateBlocks();
+    }
+    private void launchBall(){
+        ballX = (paddleX + paddleBroad / 2);
+        ballY = HEIGHT - 40;
+        if (ballSpeedY > 0)
+        ballSpeedY = -ballSpeedY ; 
     }
 
     public static void main(String[] args) {

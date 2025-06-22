@@ -1,3 +1,5 @@
+package arkanoid2;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -6,9 +8,9 @@ public class Block extends Rectangle{
 	public int x,y;
 	public static int size_X = 60;
 	public static int size_Y = 30;
-	public Color c;
+	public Color c = Color.BLUE;
 
-	public Block(int x,int y,Color c) {
+	public Block(int x,int y,Color c ) {
 		this.c = c;
 		this.x = x;
 		this.y = y;
